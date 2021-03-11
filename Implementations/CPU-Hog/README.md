@@ -1,4 +1,5 @@
-Using TraceCompass EASE scripting, we can learn more about a trace by looking at how long a process occupies a CPU. If a process occupies a CPU longer than it should and starves other processes, we can classify it as a CPU hog. The following code detects bad smells of CPU hog by examining an execution trace on TraceCompass.
+CPU Hog
+<br />Using TraceCompass EASE scripting, we can learn more about a trace by looking at how long a process occupies a CPU. If a process occupies a CPU longer than it should and starves other processes, we can classify it as a CPU hog. The following code detects bad smells of CPU hog by examining an execution trace on TraceCompass.
 ```javascript
 loadModule("/TraceCompass/Trace");
 loadModule("/TraceCompass/Analysis");
@@ -172,3 +173,5 @@ function printCPU(number, threads){
 }
 ```
 The file cpu_hog.js contains this code. Make sure to run the code using the Nashorn engine. You probably will encounter errors running it using Rhino engine, as that engine does not handle methods with multiple signatures well.
+<br />The code will output a time graph view showing each thread in the trace. The threads are organized by CPU. For each CPU, the threads are organized in order of most time on the CPU to least time on the CPU. The following is an example output.
+<br />![Example output](Output.png?raw=true)
