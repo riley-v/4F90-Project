@@ -178,4 +178,4 @@ The file cpu_hog.js contains this code. Make sure to run the code using the Nash
 ![Example output](Output.png?raw=true)
 <br />
 <br />The following is a view of a trace that was obtained while running stress. Stress is a CPU burner which sends workers to spin on specific functions. In this case, I sent eight workers to spin on the sqrt() function. The view shows that besides the swapper thread, these eight workers spent the most time on the CPU. The following screenshot shows just a portion of the view where the cpu hog is very clear.
-![CPU hog](Stress example.png?raw=true)
+![CPU hog](Stress-example.png?raw=true)
