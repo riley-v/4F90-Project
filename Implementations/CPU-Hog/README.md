@@ -173,5 +173,9 @@ function printCPU(number, threads){
 }
 ```
 The file cpu_hog.js contains this code. Make sure to run the code using the Nashorn engine. You probably will encounter errors running it using Rhino engine, as that engine does not handle methods with multiple signatures well.
-<br />The code will output a time graph view showing each thread in the trace. The threads are organized by CPU. For each CPU, the threads are organized in order of most time on the CPU to least time on the CPU. The following is an example output.
-<br />![Example output](Output.png?raw=true)
+<br />The code will output a time graph view showing each thread in the trace. The threads are organized by CPU. For each CPU, the threads are organized in order of most time on the CPU to least time on the CPU. The following is an example of that output. As you can see, the CPUs are separated. Additionally, for each CPU, the threads are organized from most time on the CPU to least time on the CPU.
+<br />
+![Example output](Output.png?raw=true)
+<br />The following is a view of a trace that was obtained while running stress. Stress is a CPU burner which sends workers to spin on specific functions. In this case, I sent eight workers to spin on the sqrt() function. The view shows that besides the swapper thread, these eight workers spent the most time on the CPU. The following screenshot shows just a portion of the view where the cpu hog is very clear.
+<br />
+![CPU hog]()
