@@ -1,2 +1,2 @@
-Here is a list of bad smells that have a implementation:
+List of bad smells with implementations:
 <br />[CPU hog](CPU-Hog/)
