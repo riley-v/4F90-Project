@@ -250,7 +250,7 @@ if (provider != null) {
 print("Finished");
 ```
 
-The file *cpu_hog.js* contains this code. Make sure to run the code using the Nashorn engine. You probably will encounter errors running it using Rhino engine, as that engine does not handle methods with multiple signatures well. The code will output a time graph view showing each thread in the trace. The following is an example of that output.<br />
+The file *cpu_hog.js* contains this code. Make sure to run the code using the Nashorn engine. You probably will encounter errors running it using Rhino engine, as that engine does not handle methods with multiple signatures well. The code will output a time graph view showing each highlighted thread in the trace. The following is an example of that output:<br />
 ![Example output](Screenshots/March-24-Output.png?raw=true)
-This trace was created while running a Linux program called stress. This program is a CPU burner designed push the CPU to a specified capacity. The CPU 0 Overview clearly highlights the area in the trace where that program was active. The threads below are organized in order of most time on the CPU to least time on the CPU. The following is an example of that output:
+This trace was created while running a Linux program called stress. This program is a CPU burner designed push the CPU to a specified capacity. When running the cpu hog code, I set the threshold to 3%. The CPU 0 Overview clearly highlights the area in the trace where that program was active. The threads below are organized in order of most time on the CPU to least time on the CPU.
 
