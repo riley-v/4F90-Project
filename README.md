@@ -1,3 +1,4 @@
+# Executio Tracing-Based Bad Smell Detection
 This repository contains information relating to the COSC 4F90 project entitled Execution tracing-based bad smell detection.
 <br />
 <br />Implementation:
