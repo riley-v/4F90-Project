@@ -59,18 +59,18 @@ while (iter.hasNext()){
 	
 	if(start_time==-1) start_time = event.getTimestamp().toNanos();
 	
-	var eventName = event.getName();
-	var eventCPU = getEventFieldValue(event,"CPU")
+	var event_name = event.getName();
+	var event_CPU = getEventFieldValue(event,"CPU")
 	
-	if(eventName=="sched_switch"){
+	if(event_name=="sched_switch"){
 		//create a new CPU list if this is the first event for that CPU
-		if(sched_switch_list[eventCPU]==null){
-			sched_switch_list[eventCPU] = [];
-			sched_switch_list[eventCPU][0] = event;
+		if(sched_switch_list[event_CPU]==null){
+			sched_switch_list[event_CPU] = [];
+			sched_switch_list[event_CPU][0] = event;
 			
 		//otherwise add the event to the end of the existing CPU list
 		}else{
-			sched_switch_list[eventCPU][sched_switch_list[eventCPU].length] = event;
+			sched_switch_list[event_CPU][sched_switch_list[event_CPU].length] = event;
 		}
 	}
 }
@@ -162,7 +162,6 @@ print("Sorting threads by total duration...");
 var thread_to_duration = [];
 for(i = 0; i < duration_list.length; i++){
 	duration_list[i].sort(function(a,b){return b.duration - a.duration});
-	//printCPU(i,duration_list[i]);
 	
 	new_list = [];
 	for(j = 0; j < duration_list[i].length; j++){
@@ -183,9 +182,9 @@ for(i = 0; i < duration_list.length; i++){
 	for(j = 0; j < thread_list[i].length; j++){
 		var name;
 		if(thread_to_duration[i][thread_list[i][j].tid]){
-			name = "warning";
+			name = "above threshold";
 		}else{
-			name = "safe";
+			name = "below threshold";
 		}
 		
 		ss.modifyAttribute(thread_list[i][j].start, name, quark);
@@ -199,7 +198,7 @@ for(i = 0; i < duration_list.length; i++){
 		quark = ss.getQuarkAbsoluteAndAdd("CPU "+i+" Threads", j);
 		for(k = 0; k < thread_list[i].length; k++){
 			if(thread_list[i][k].tid==duration_list[i][j].tid){
-				ss.modifyAttribute(thread_list[i][k].start, "warning", quark);
+				ss.modifyAttribute(thread_list[i][k].start, "above threshold", quark);
 				ss.removeAttribute(thread_list[i][k].end, quark);
 			}
 		}
@@ -227,8 +226,7 @@ for(i = 0; i <duration_list.length; i++){
 	
 	for (j = 0; j < quarks.size()-1; j++) {
 		quark = quarks.get(j);
-		entry_ratio = duration_list[i][j].duration/(end_time-start_time)*100
-		entry_ratio = entry_ratio.toFixed(2);
+		entry_ratio = (duration_list[i][j].duration/(end_time-start_time)*100).toFixed(2);
 		entry_name = duration_list[i][j].tid + "->" + duration_list[i][j].name + ": " + entry_ratio + "%";
 		entry = createEntry(entry_name, {'quark' : quark});
 		entries.getList().add(entry);
@@ -245,12 +243,15 @@ provider = createScriptedTimeGraphProvider(analysis, getEntries, null, null);
 if (provider != null) {
 	openTimeGraphView(provider);
 }
+```
 
+And we are done!<br />
+```javascript
 //Script finished.
 print("Finished");
 ```
 
 The file *cpu_hog.js* contains this code. Make sure to run the code using the Nashorn engine. You probably will encounter errors running it using Rhino engine, as that engine does not handle methods with multiple signatures well. The code will output a time graph view showing each highlighted thread in the trace. The following is an example of that output:<br />
-![Example output](Screenshots/March-24-Output.png?raw=true)
+![Example output](Screenshots/March-31-Output.png?raw=true)
 This trace was created while running a Linux program called stress. This program is a CPU burner designed to push the CPU to a specified capacity. Using stress, I created eight worker threads to spin on a lock for 20 seconds. When running the cpu_hog.js code for this trace, I set the threshold to 3%. The CPU 0 Overview clearly highlights the area in the trace where stress was active. The threads below are organized in order of most time on the CPU to least time on the CPU.
 
