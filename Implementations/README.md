@@ -1,7 +1,8 @@
 # Implemented Bad Smells
 
-### CPU Hog <br />
-[CPU hog](CPU-Hog/) <br />
+### CPU Hog
+[CPU hog](CPU-Hog/) refers to the bad smell where a thread occupies more time on the CPU then it should, resulting in the starvation of other processes.
+<br />
 
-### CPU Swamp <br />
-[CPU swamp](CPU-Swamp/) <br />
+### CPU Swamp
+[CPU swamp](CPU-Swamp/) refers to the smell where many other processes swamp the CPU while a different thread is supposed to be occupying the CPU.
