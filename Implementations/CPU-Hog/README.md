@@ -21,7 +21,7 @@ if(threshold==null || threshold > 100 || threshold < 0){
 threshold = threshold/100;
 ```
 
-The trace variable is the trace to examine. The code will automatically examine the active trace. If no trace is active, a message will be displayed on the console informing the user. <br />
+The *trace* variable is the trace to examine. The code will automatically examine the active trace. If no trace is active, a message will be displayed on the console informing the user. <br />
 ```javascript
 //get the active trace
 var trace = getActiveTrace();
@@ -31,7 +31,7 @@ if(trace==null){
 }
 ```
 
-The analysis variable refers to the analysis that the code will be creating. The ss variable will be the state system that we will be saving data to. <br />
+The analysis variable refers to the analysis that the code will be creating. The *ss* variable will be the state system that we will be saving data to. <br />
 ```javascript
 //set up the state system
 var analysis = createScriptedAnalysis(trace, "cpu_hog_view.js");
@@ -45,7 +45,7 @@ var start_time = -1;
 var end_time = -1;
 ```
 
-Next, the code will parse through the events. We only need *sched_switch* events. We will also need to sort by CPU. <br />
+Next, the code will parse through the events. We only need *sched_switch* events. The sequence of *sched_switch* events will be stored in the list *sched_switch_list*. This list is 2D, allowing us to sort between the differnt CPUs as well. <br />
 ```javascript
 //this block will create a list that will contain one list for each CPU of the "sched_switch" events
 //it also sets the start and end times
@@ -77,7 +77,7 @@ while (iter.hasNext()){
 end_time = event.getTimestamp().toNanos();
 ```
 
-After that, we will match the *sched_switch* events so we know the start time and end time that each thread spent on the CPU for each continuous period of time. <br />
+After that, for each CPU, we will match the 'i'th *sched_switch* event with the 'i+1'th so we know the start time and end time that the thread spent occupying that CPU. This data will be stored in the *thread_list* list.
 ```javascript
 //this block calculates, for each CPU, the time from the 'i'th sched_switch event to the 'i+1'th and matches that time with the corresponding thread id
 print("Calculating thread durations...");
@@ -118,7 +118,7 @@ for(i=0; i<sched_switch_list.length; i++){
 }
 ```
 
-Next, we will calculate the total time that each unique thread spent on the CPU and store it in a list. <br />
+Next, for each CPU, we will calculate the total time that each unique thread spent on that CPU and store it in a list. This list is called *duration_list*. <br />
 ```javascript
 //this block creates a new list that will hold the total duration on the CPU for each thread
 print("Matching thread IDs...");
@@ -153,8 +153,8 @@ for(i = 0; i < thread_list.length; i++){
 	duration_list[i] = new_list;
 }
 ```
-After that, we need to sort the duration_list by most time on CPU to least time. At this time, we will also map each item in the thread_list to the corresponding item in the duration_list. <br />
 
+After that, we need to sort the *duration_list* by most time on CPU to least time on the CPU. We will also map each thread in the *thread_list* to the corresponding thread in the *duration_list*. This data will be stored in *thread_to_duration*, and will be used to speed up the process of creating the state system. <br />
 ```javascript
 //sort the entries by duration: highest to lowest
 print("Sorting threads by total duration...");
@@ -171,7 +171,7 @@ for(i = 0; i < duration_list.length; i++){
 }
 ```
 
-After that, the state system needs to be created. We will filter out all threads that have a total CPU amount less than the threshold amount specified by the user. <br />
+Now the state system needs to be created. We will filter out all threads that have a total CPU amount less than the threshold amount specified by the user. All others will be saved to the CPU. Additionally, we will save the overview of each CPU to the stae system for better comprehension of what is happening. <br />
 ```javascript
 //this block saves the attributes to the state system
 print("Creating state system...");
@@ -209,7 +209,7 @@ for(i = 0; i < duration_list.length; i++){
 ss.closeHistory(end_time);
 ```
 
-Finally, we need to create the time graph view. First, the overview for a CPU will be displayed. After that, each thread with a total amount of CPU time over the threshold value will be displayed. This will happen for each CPU in the thread.
+Finally, we need to create the time graph view. First, the overview for a CPU will be displayed. After that, each thread with a total amount of CPU time over the threshold value will be displayed. This will happen for each CPU in the thread. Al of this data comes from the state system created in the previous block of code.
 ```javascript
 //this block sets up the time graph provider for the time graph view by creating an entries list from the state system
 print("Creating time graph view...");
