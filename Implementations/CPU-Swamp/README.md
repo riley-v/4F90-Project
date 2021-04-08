@@ -10,7 +10,7 @@ loadModule("/TraceCompass/View");
 loadModule('/TraceCompass/Utils');
 ```
 
-The threshold value is a user supplied value. It should be a number between 0 and 100. This value represents CPU usage as a percetage of the lifettime of a thread over the tracing period. If a thread occupies the CPU for longer than the threshold value, it will be highlighted. To set the variable, go to cpu_swamp.js -> Run As... -> Run Configuration... -> Script arguments.
+The *threshold* value is a user supplied value. It should be a number between 0 and 100. This value represents CPU usage as a percetage of the lifettime of a thread over the tracing period. If a thread occupies the CPU for longer than the threshold value, it will be highlighted. To set the variable, go to cpu_swamp.js -> Run As... -> Run Configuration... -> Script arguments.
 ```javascript
 var threshold = argv[0];
 if(threshold==null || threshold > 100 || threshold < 0){
@@ -21,6 +21,7 @@ if(threshold==null || threshold > 100 || threshold < 0){
 threshold = threshold/100;
 ```
 
+The *trace* variable is the trace to examine. The code will automatically examine the active trace. If no trace is active, a message will be displayed on the console informing the user.
 ```javascript
 //get the active trace
 var trace = getActiveTrace();
@@ -30,18 +31,21 @@ if(trace==null){
 }
 ```
 
+The *analysis* variable refers to the analysis that the code will be creating. The *ss* variable will be the state system that we will be saving data to.
 ```javascript
 //set up the state system
 var analysis = createScriptedAnalysis(trace, "cpu_swamp_view.js");
 var ss = analysis.getStateSystem(false);
 ```
 
+We will need to use the start and end times in various places throughout the program. The start time will be the timestamp of the first event, and the end time will be the timestamp of the last event.
 ```javascript
 //the start and end times for the trace
 var start_time = -1;
 var end_time = -1;
 ```
 
+Next, the code will parse through the events. We only need *sched_switch* events. The sequence of *sched_switch* events will be stored in the list *sched_switch_list*. This list is 2D, allowing us to sort between the differnt CPUs as well.
 ```javascript
 //this block will create a list that will contain one list for each CPU of the "sched_switch" events
 //it also sets the start and end times
@@ -73,6 +77,7 @@ while (iter.hasNext()){
 end_time = event.getTimestamp().toNanos();
 ```
 
+After that, for each CPU, we will match the 'i'th *sched_switch* event with the 'i+1'th so we know the start time and end time that the thread spent occupying that CPU. This data will be stored in the *thread_list* list.
 ```javascript
 //this block calculates, for each CPU, the time from the 'i'th sched_switch event to the 'i+1'th and matches that time with the corresponding thread id
 print("Calculating segmented thread durations...");
@@ -111,11 +116,11 @@ for(i=0; i<sched_switch_list.length; i++){
 	
 	thread_list[i] = new_list;
 }
-
-print("Calculating total durations of threads...");
 ```
 
+Next, for each CPU, we will calculate the total time that each unique thread spent on that CPU and store it in a list. This list is called *swamp_list*. We will also keep track of the first timestamp and last timestamp for every thread, so we know that thread's lifetime ove the course of the trace.
 ```javascript
+print("Calculating total durations of threads...");
 var swamp_list = [];
 for(i = 0; i < thread_list.length; i++){
 	var new_list = [];
@@ -150,13 +155,14 @@ for(i = 0; i < thread_list.length; i++){
 }
 ```
 
+After that, we need to sort the *swamp_list* by lowest time on the CPU per lifetime to highest. We will also map each thread in the *thread_list* to the corresponding thread in the *swamp_list*. This data will be stored in *thread_to_swamp*, and will be used to speed up the process of creating the state system.
 ```javascript
 //sort the entries by swamping percentage
 print("Sorting threads by swamp percentage...");
 
 var thread_to_swamp = [];
 for(i = 0; i < swamp_list.length; i++){
-	swamp_list[i].sort(function(a,b){return b.duration/(b.start-b.end) - a.duration/(a.start-a.end)});
+	swamp_list[i].sort(function(a,b){return a.duration/(a.end-a.start) - b.duration/(b.end-b.start)});
 	
 	new_list = [];
 	for(j = 0; j < swamp_list[i].length; j++){
@@ -166,6 +172,7 @@ for(i = 0; i < swamp_list.length; i++){
 }
 ```
 
+Now the state system needs to be created. We will filter out all threads that have a time on CPU per lifetime percentage greater than the threshold amount specified by the user. All others will be saved to the state system. Additionally, we will save the overview of each CPU to the state system for better comprehension of what is happening.
 ```javascript
 //this block saves the attributes to the state system
 print("Creating state system...");
@@ -203,6 +210,7 @@ for(i = 0; i < thread_list.length; i++){
 ss.closeHistory(end_time);
 ```
 
+Finally, we need to create the time graph view. First, the overview for a CPU will be displayed. After that, each thread with a time on CPU per lifetime percentage under the threshold value will be displayed. This will happen for each CPU in the thread. All of this data comes from the state system created in the previous block of code.
 ```javascript
 //this block sets up the time graph provider for the time graph view by creating an entries list from the state system
 print("Creating time graph view...");
@@ -238,9 +246,12 @@ if (provider != null) {
 }
 ```
 
+And we are done!
 ```javascript
 //Script finished.
 print("Finished");
 ```
 
+The file cpu_hog.js contains this code. Make sure to run the code using the Nashorn engine. You probably will encounter errors running it using Rhino engine, as that engine does not handle methods with multiple signatures well. The code will output a time graph view showing each highlighted thread in the trace. The following is an example of that output:
 ![Example output](Screenshots/April-8-Output.png?raw=true)
+This trace was created while running a Linux program called stress. This program is a CPU burner designed to push the CPU to a specified capacity. Using stress, I created eight worker threads to spin on a lock for 20 seconds. When running the cpu_swamp.js code for this trace, I set the threshold to 3%. The CPU 0 Overview clearly highlights the areas in the trace where swamping occured. The threads below are organized in order of highest amount of swamping to lowest amount. The swamping in most of these threads may not actually be negative or unintended. However, this is a good indication of which threads might be causing a slowdown in the system.
