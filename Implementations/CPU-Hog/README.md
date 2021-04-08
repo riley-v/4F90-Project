@@ -10,7 +10,7 @@ loadModule("/TraceCompass/View");
 loadModule('/TraceCompass/Utils');
 ```
 
-The threshold value is a user supplied value. It should be a number between 0 and 100. This value represents CPU usage as a percetage of the entire trace duration. If a thread occupies the CPU for longer than the threshold value, it will be highlighted. To set the variable, go to cpu_hog.js -> Run As... -> Run Configuration... -> Script arguments. <br />
+The *threshold* value is a user supplied value. It should be a number between 0 and 100. This value represents CPU usage as a percetage of the entire trace duration. If a thread occupies the CPU for longer than the threshold value, it will be highlighted. To set the variable, go to cpu_hog.js -> Run As... -> Run Configuration... -> Script arguments. <br />
 ```javascript
 var threshold = argv[0];
 if(threshold==null || threshold > 100 || threshold < 0){
@@ -31,7 +31,7 @@ if(trace==null){
 }
 ```
 
-The analysis variable refers to the analysis that the code will be creating. The *ss* variable will be the state system that we will be saving data to. <br />
+The *analysis* variable refers to the analysis that the code will be creating. The *ss* variable will be the state system that we will be saving data to. <br />
 ```javascript
 //set up the state system
 var analysis = createScriptedAnalysis(trace, "cpu_hog_view.js");
@@ -171,7 +171,7 @@ for(i = 0; i < duration_list.length; i++){
 }
 ```
 
-Now the state system needs to be created. We will filter out all threads that have a total CPU amount less than the threshold amount specified by the user. All others will be saved to the CPU. Additionally, we will save the overview of each CPU to the stae system for better comprehension of what is happening. <br />
+Now the state system needs to be created. We will filter out all threads that have a total CPU amount less than the threshold amount specified by the user. All others will be saved to the state system. Additionally, we will save the overview of each CPU to the state system for better comprehension of what is happening. <br />
 ```javascript
 //this block saves the attributes to the state system
 print("Creating state system...");
@@ -209,7 +209,7 @@ for(i = 0; i < duration_list.length; i++){
 ss.closeHistory(end_time);
 ```
 
-Finally, we need to create the time graph view. First, the overview for a CPU will be displayed. After that, each thread with a total amount of CPU time over the threshold value will be displayed. This will happen for each CPU in the thread. Al of this data comes from the state system created in the previous block of code.
+Finally, we need to create the time graph view. First, the overview for a CPU will be displayed. After that, each thread with a total amount of CPU time over the threshold value will be displayed. This will happen for each CPU in the thread. All of this data comes from the state system created in the previous block of code.
 ```javascript
 //this block sets up the time graph provider for the time graph view by creating an entries list from the state system
 print("Creating time graph view...");
@@ -253,5 +253,5 @@ print("Finished");
 
 The file *cpu_hog.js* contains this code. Make sure to run the code using the Nashorn engine. You probably will encounter errors running it using Rhino engine, as that engine does not handle methods with multiple signatures well. The code will output a time graph view showing each highlighted thread in the trace. The following is an example of that output:<br />
 ![Example output](Screenshots/March-31-Output.png?raw=true)
-This trace was created while running a Linux program called stress. This program is a CPU burner designed to push the CPU to a specified capacity. Using stress, I created eight worker threads to spin on a lock for 20 seconds. When running the cpu_hog.js code for this trace, I set the threshold to 3%. The CPU 0 Overview clearly highlights the area in the trace where stress was active. The threads below are organized in order of most time on the CPU to least time on the CPU.
+This trace was created while running a Linux program called stress. This program is a CPU burner designed to push the CPU to a specified capacity. Using stress, I created eight worker threads to spin on a lock for 20 seconds. When running the cpu_hog.js code for this trace, I set the threshold to 3%. The CPU 0 Overview clearly highlights the area in the trace where stress was active. The threads below are organized in order of highest hogging percentage to lowest hogging percentage.
 
