@@ -80,7 +80,7 @@ end_time = event.getTimestamp().toNanos();
 After that, for each CPU, we will match the 'i'th *sched_switch* event with the 'i+1'th so we know the start time and end time that the thread spent occupying that CPU. This data will be stored in the *thread_list* list.
 ```javascript
 //this block calculates, for each CPU, the time from the 'i'th sched_switch event to the 'i+1'th and matches that time with the corresponding thread id
-print("Calculating thread durations...");
+print("Calculating segmented thread durations...");
 
 var thread_list = [];
 for(i=0; i<sched_switch_list.length; i++){
@@ -121,7 +121,7 @@ for(i=0; i<sched_switch_list.length; i++){
 Next, for each CPU, we will calculate the total time that each unique thread spent on that CPU and store it in a list. This list is called *duration_list*. <br />
 ```javascript
 //this block creates a new list that will hold the total duration on the CPU for each thread
-print("Matching thread IDs...");
+print("Calculating total durations of threads...");
 
 var duration_list = [];
 for(i = 0; i < thread_list.length; i++){
@@ -182,9 +182,9 @@ for(i = 0; i < duration_list.length; i++){
 	for(j = 0; j < thread_list[i].length; j++){
 		var name;
 		if(thread_to_duration[i][thread_list[i][j].tid]){
-			name = "above threshold";
+			name = "hogging thread";
 		}else{
-			name = "below threshold";
+			name = "safe thread";
 		}
 		
 		ss.modifyAttribute(thread_list[i][j].start, name, quark);
@@ -194,11 +194,11 @@ for(i = 0; i < duration_list.length; i++){
 	}
 
 	var j = 0;
-	while(j<duration_list[i].length && duration_list[i][j].duration/(end_time-start_time) > threshold){
+	while(j<duration_list[i].length && thread_to_duration[i][duration_list[i][j].tid]){
 		quark = ss.getQuarkAbsoluteAndAdd("CPU "+i+" Threads", j);
 		for(k = 0; k < thread_list[i].length; k++){
 			if(thread_list[i][k].tid==duration_list[i][j].tid){
-				ss.modifyAttribute(thread_list[i][k].start, "above threshold", quark);
+				ss.modifyAttribute(thread_list[i][k].start, "hogging thread", quark);
 				ss.removeAttribute(thread_list[i][k].end, quark);
 			}
 		}
