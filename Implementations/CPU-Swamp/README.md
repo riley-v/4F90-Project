@@ -1,9 +1,4 @@
 # CPU Swamp
-To do: <br />
-update code to show which threads are swamping the target <br />
-create appropriate trace to test on <br />
-explain code on github <br />
-explain example output in github
 
 ```javascript
 loadModule("/TraceCompass/Trace");
@@ -11,7 +6,9 @@ loadModule("/TraceCompass/Analysis");
 loadModule("/TraceCompass/DataProvider");
 loadModule("/TraceCompass/View");
 loadModule('/TraceCompass/Utils');
+```
 
+```javascript
 var threshold = argv[0];
 if(threshold==null || threshold > 100 || threshold < 0){
 	print("Go to cpu_swamp.js -> Run As... -> Run Configuration... -> Script arguments and enter your desired threshold value (%) as the first parameter.")
@@ -19,22 +16,30 @@ if(threshold==null || threshold > 100 || threshold < 0){
 	exit();
 }
 threshold = threshold/100;
+```
 
+```javascript
 //get the active trace
 var trace = getActiveTrace();
 if(trace==null){
 	print("No trace is active.");
 	exit();
 }
+```
 
+```javascript
 //set up the state system
 var analysis = createScriptedAnalysis(trace, "cpu_swamp_view.js");
 var ss = analysis.getStateSystem(false);
+```
 
+```javascript
 //the start and end times for the trace
 var start_time = -1;
 var end_time = -1;
+```
 
+```javascript
 //this block will create a list that will contain one list for each CPU of the "sched_switch" events
 //it also sets the start and end times
 print("Parsing events...");
@@ -63,13 +68,9 @@ while (iter.hasNext()){
 	}
 }
 end_time = event.getTimestamp().toNanos();
+```
 
-//this block makes sure the trace contains the required data
-if(start_time==-1 || start_time-end_time>=0){
-	print("The active trace does not contain enough data to complete the analysis for the target thread.");
-	exit();
-}
-
+```javascript
 //this block calculates, for each CPU, the time from the 'i'th sched_switch event to the 'i+1'th and matches that time with the corresponding thread id
 print("Calculating segmented thread durations...");
 
@@ -109,7 +110,9 @@ for(i=0; i<sched_switch_list.length; i++){
 }
 
 print("Calculating total durations of threads...");
+```
 
+```javascript
 var swamp_list = [];
 for(i = 0; i < thread_list.length; i++){
 	var new_list = [];
@@ -142,7 +145,9 @@ for(i = 0; i < thread_list.length; i++){
 	
 	swamp_list[i] = new_list;
 }
+```
 
+```javascript
 //sort the entries by swamping percentage
 print("Sorting threads by swamp percentage...");
 
@@ -156,7 +161,9 @@ for(i = 0; i < swamp_list.length; i++){
 	}
 	thread_to_swamp[i] = new_list;
 }
+```
 
+```javascript
 //this block saves the attributes to the state system
 print("Creating state system...");
 
@@ -191,7 +198,9 @@ for(i = 0; i < thread_list.length; i++){
 }
 
 ss.closeHistory(end_time);
+```
 
+```javascript
 //this block sets up the time graph provider for the time graph view by creating an entries list from the state system
 print("Creating time graph view...");
 
@@ -224,9 +233,11 @@ provider = createScriptedTimeGraphProvider(analysis, getEntries, null, null);
 if (provider != null) {
 	openTimeGraphView(provider);
 }
+```
 
+```javascript
 //Script finished.
 print("Finished");
 ```
 
-![Example output](Screenshots/March-31-Output.png?raw=true)
+![Example output](Screenshots/April-8-Output.png?raw=true)
