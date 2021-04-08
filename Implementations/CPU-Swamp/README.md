@@ -1,5 +1,7 @@
 # CPU Swamp
+Using TraceCompass EASE scripting, we can learn more about a trace by looking at how a thread occupies the CPU. If a thread is constantly being interrupted by other processes, so that it is being starved, we can say that the thread is being swamped. The following code highlights bad smells of CPU swamp by examining an execution trace on TraceCompass. <br />
 
+First we need to set up all the proper variables. There are a number of modules we need to load for this project.
 ```javascript
 loadModule("/TraceCompass/Trace");
 loadModule("/TraceCompass/Analysis");
