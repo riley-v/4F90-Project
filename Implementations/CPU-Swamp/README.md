@@ -10,6 +10,7 @@ loadModule("/TraceCompass/View");
 loadModule('/TraceCompass/Utils');
 ```
 
+The threshold value is a user supplied value. It should be a number between 0 and 100. This value represents CPU usage as a percetage of the lifettime of a thread over the tracing period. If a thread occupies the CPU for longer than the threshold value, it will be highlighted. To set the variable, go to cpu_swamp.js -> Run As... -> Run Configuration... -> Script arguments.
 ```javascript
 var threshold = argv[0];
 if(threshold==null || threshold > 100 || threshold < 0){
