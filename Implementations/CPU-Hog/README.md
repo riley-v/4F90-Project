@@ -151,13 +151,14 @@ for(i = 0; i < duration_list.length; i++){
 }
 ```
 
-The global filter requires a regex to higlight the proper events. We create one in this step. Basically, we iterate through the sorted list, adding each thread id and CPU number to the regex until the threads no longer fit within the threshold or the list ends. We repeat for each CPU list.
+The global filter requires a regex to higlight the proper events. We create one in this step. Basically, we iterate through the sorted list, adding each thread id and CPU number to the regex until the threads no longer fit within the threshold or the list ends. We repeat for each CPU list. Also, when a thread fits the threshold criteria, we print out its TID and the percentage of the trace time that it occupies a CPU for.
 ```javascript
 //this block adds a global filter
 print("Creating filter...");
 
 var regex = "";
 for(i = 0; i < duration_list.length; i++){
+	print("CPU " + i + " Hogs:");
 	var j = 0;
 	while(j<duration_list[i].length && duration_list[i][j].duration/(end_time-start_time) >= threshold){
 		if(regex==""){
@@ -165,6 +166,7 @@ for(i = 0; i < duration_list.length; i++){
 		}else{
 			regex = regex + " || (CPU==" + i + " && TID==" + duration_list[i][j].tid + ")";
 		}
+		print(duration_list[i][j].tid + ": " + (duration_list[i][j].duration/(end_time-start_time))*100 + "%");
 		j++;
 	}
 }
