@@ -120,6 +120,7 @@ print("Creating filter...");
 
 var regex = "";
 for(i = 0; i < duration_list.length; i++){
+	print("CPU " + i + " Hogs:");
 	var j = 0;
 	while(j<duration_list[i].length && duration_list[i][j].duration/(end_time-start_time) >= threshold){
 		if(regex==""){
@@ -127,13 +128,13 @@ for(i = 0; i < duration_list.length; i++){
 		}else{
 			regex = regex + " || (CPU==" + i + " && TID==" + duration_list[i][j].tid + ")";
 		}
+		print(duration_list[i][j].tid + ": " + (duration_list[i][j].duration/(end_time-start_time))*100 + "%");
 		j++;
 	}
 }
 
 if(regex!=""){
-	print("The filter was applied.");
 	applyGlobalFilter(regex);
+	print("The filter was applied.");
 }else{
 	print("No threads were selected.");
-}
