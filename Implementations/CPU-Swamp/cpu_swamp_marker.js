@@ -20,143 +20,118 @@ if(trace==null){
 var start_time = -1;
 var end_time = -1;
 
-//this block will create a list that will contain one list for each CPU of the "sched_switch" events
-//it also sets the start and end times
-print("Parsing events...");
+//this block calculates, for each CPU, the time from the 'i'th sched_switch event to the 'i+1'th and matches that time with the corresponding thread id
+print("Calculating thread durations...");
 
-var sched_switch_list = [];
+var swamp_list = [];
 var iter = getEventIterator(trace);
 var event = null;
+
+var track_list = [];
+var last_active = [];
+var last_sched_switch = null;
+var entry_num = 0;
+var prev = [];
+
 while (iter.hasNext()){
 	event = iter.next();
+	var cpu_num = getEventFieldValue(event,"CPU");
 	
 	if(start_time==-1) start_time = event.getTimestamp().toNanos();
+	if(prev[cpu_num]==null) prev[cpu_num] = start_time;
 	
-	var event_name = event.getName();
-	var event_CPU = getEventFieldValue(event,"CPU")
+	if(event.getName()=="sched_switch"){
+		last_sched_switch = event;
+		var new_entry;
+
+		var new_tid = getEventFieldValue(event, "prev_tid");
+		if(new_tid==0) new_tid = new_tid + ":" + cpu_num;
 	
-	if(event_name=="sched_switch"){
-		//create a new CPU list if this is the first event for that CPU
-		if(sched_switch_list[event_CPU]==null){
-			sched_switch_list[event_CPU] = [];
-			sched_switch_list[event_CPU][0] = event;
+		if(track_list[new_tid]==null){
+			new_entry = {
+				tid: getEventFieldValue(event, "prev_tid"),
+				start: prev[cpu_num],
+				end: event.getTimestamp().toNanos(),
+				duration: event.getTimestamp().toNanos() - prev[cpu_num],
+				inactive: 0
+			}
+			prev[cpu_num] = new_entry.end;
+			if(getEventFieldValue(event, "prev_state") != "TASK_RUNNING"){
+				last_active[new_tid] = new_entry.end;
+			}else{
+				last_active[new_tid] = -1;
+			}
 			
-		//otherwise add the event to the end of the existing CPU list
+			swamp_list[entry_num] = new_entry;
+			track_list[new_tid] = entry_num;
+			entry_num++;
+			
 		}else{
-			sched_switch_list[event_CPU][sched_switch_list[event_CPU].length] = event;
+			swamp_list[track_list[new_tid]].end = event.getTimestamp().toNanos();
+			swamp_list[track_list[new_tid]].duration = swamp_list[track_list[new_tid]].duration + (event.getTimestamp().toNanos() - prev[cpu_num]);
+			if(last_active[new_tid] != -1) swamp_list[track_list[new_tid]].inactive = swamp_list[track_list[new_tid]].inactive + (prev[cpu_num] - last_active[new_tid]);
+			
+			prev[cpu_num] = event.getTimestamp().toNanos();
+			if(getEventFieldValue(event, "prev_state") != "TASK_RUNNING"){
+				last_active[new_tid] = swamp_list[track_list[new_tid]].end;
+			}else{
+				last_active[new_tid] = -1;
+			}
 		}
 	}
 }
 end_time = event.getTimestamp().toNanos();
 
-//this block makes sure the trace contains the required data
-if(start_time==-1 || start_time-end_time>=0){
-	print("The active trace does not contain enough data to complete the analysis.");
-	exit();
-}
+if(last_sched_switch!=null){
+	var cpu_num = getEventFieldValue(last_sched_switch,"CPU");
+	if(prev[cpu_num]==null) prev[cpu_num] = start_time;
 
-//this block calculates, for each CPU, the time from the 'i'th sched_switch event to the 'i+1'th and matches that time with the corresponding thread id
-print("Calculating thread durations...");
-
-var swamp_list = [];
-for(i=0; i<sched_switch_list.length; i++){
-	var new_list = [];
-	var track_list = [];
-	var last_active = [];
-	var entry_num = 0;
-	var prev = start_time;
+	var new_entry;
+	var new_tid = getEventFieldValue(last_sched_switch, "next_tid");
+	if(new_tid==0) new_tid = new_tid + ":" + cpu_num;
 	
-	for(j=0; j<=sched_switch_list[i].length; j++){
-		var new_entry;
-	
-		if(j==sched_switch_list[i].length){
-			var new_tid = getEventFieldValue(sched_switch_list[i][j-1], "next_tid");
-			
-			if(track_list[new_tid]==null){
-				new_entry = {
-					tid: new_tid,
-					start: prev,
-					end: end_time,
-					duration: end_time - prev,
-					inactive: 0
-				}
-				new_list[entry_num] = new_entry;
-				track_list[new_entry.tid] = entry_num;
-				entry_num++;
-				
-			}else{
-				new_list[track_list[new_tid]].end = end_time;
-				new_list[track_list[new_tid]].duration = new_list[track_list[new_tid]].duration + (end_time - prev);
-				if(last_active[new_tid] != -1) new_list[track_list[new_tid]].inactive = new_list[track_list[new_tid]].inactive + (prev - last_active[new_tid]);
-			}
-			
-		}else{
-			var new_tid = getEventFieldValue(sched_switch_list[i][j], "prev_tid");
-		
-			if(track_list[new_tid]==null){
-				new_entry = {
-					tid: new_tid,
-					start: prev,
-					end: sched_switch_list[i][j].getTimestamp().toNanos(),
-					duration: sched_switch_list[i][j].getTimestamp().toNanos() - prev,
-					inactive: 0
-				}
-				prev = sched_switch_list[i][j].getTimestamp().toNanos();
-				if(getEventFieldValue(sched_switch_list[i][j], "prev_state") == "TASK_DEAD"){
-					last_active[new_entry.tid] = new_entry.end;
-				}else{
-					last_active[new_entry.tid] = -1;
-				}
-				
-				new_list[entry_num] = new_entry;
-				track_list[new_entry.tid] = entry_num;
-				entry_num++;
-				
-			}else{
-				new_list[track_list[new_tid]].end = sched_switch_list[i][j].getTimestamp().toNanos();
-				new_list[track_list[new_tid]].duration = new_list[track_list[new_tid]].duration + (sched_switch_list[i][j].getTimestamp().toNanos() - prev);
-				if(last_active[new_tid] != -1) new_list[track_list[new_tid]].inactive = new_list[track_list[new_tid]].inactive + (prev - last_active[new_tid]);
-				
-				prev = sched_switch_list[i][j].getTimestamp().toNanos();
-				if(getEventFieldValue(sched_switch_list[i][j], "prev_state") == "TASK_DEAD"){
-					last_active[new_tid] = new_list[track_list[new_tid]].end;
-				}else{
-					last_active[new_tid] = -1;
-				}
-			}
+	if(track_list[new_tid]==null){
+		new_entry = {
+			tid: getEventFieldValue(last_sched_switch, "next_tid"),
+			start: prev[cpu_num],
+			end: end_time,
+			duration: end_time - prev[cpu_num],
+			inactive: 0
 		}
+		swamp_list[entry_num] = new_entry;
+		track_list[new_tid] = entry_num;
+		
+	}else{
+		swamp_list[track_list[new_tid]].end = end_time;
+		swamp_list[track_list[new_tid]].duration = swamp_list[track_list[new_tid]].duration + (end_time - prev[cpu_num]);
+		if(last_active[new_tid] != -1) swamp_list[track_list[new_tid]].inactive = swamp_list[track_list[new_tid]].inactive + (prev[cpu_num] - last_active[new_tid]);
 	}
-	
-	swamp_list[i] = new_list;
 }
 
 //sort the entries by swamping percentage
 print("Sorting threads by swamp percentage...");
 
-for(i = 0; i < swamp_list.length; i++){
-	swamp_list[i].sort(function(a,b){return (1 - b.duration/(b.end-b.start-b.inactive)) - (1 - a.duration/(a.end-a.start-a.inactive))});
-}
+swamp_list.sort(function(a,b){return (1 - b.duration/(b.end-b.start-b.inactive)) - (1 - a.duration/(a.end-a.start-a.inactive))});
 
 //this block creates a global filter
 print("Creating filter...");
 
 var regex = "";
-for(i = 0; i < swamp_list.length; i++){
-	var j = 0;
-	while(j<swamp_list[i].length && 1 - swamp_list[i][j].duration/(swamp_list[i][j].end-swamp_list[i][j].start-swamp_list[i][j].inactive) >= threshold){
-		print(1 - swamp_list[i][j].duration/(swamp_list[i][j].end-swamp_list[i][j].start-swamp_list[i][j].inactive));
-		if(regex==""){
-			regex = "(CPU==" + i + " && TID==" + swamp_list[i][j].tid + ")";
-		}else{
-			regex = regex + " || (CPU==" + i + " && TID==" + swamp_list[i][j].tid + ")";
-		}
-		j++;
+var i = 0;
+print("Swamped Threads: ");
+while(i<swamp_list.length && 1 - swamp_list[i].duration/(swamp_list[i].end-swamp_list[i].start-swamp_list[i].inactive) >= threshold){
+	if(regex==""){
+		regex = "TID==" + swamp_list[i].tid;
+	}else{
+		regex = regex + " || TID==" + swamp_list[i].tid;
 	}
+	print(swamp_list[i].tid + ": " + (1 - swamp_list[i].duration/(swamp_list[i].end-swamp_list[i].start-swamp_list[i].inactive))*100 + "%");
+	i++;
 }
 
 if(regex!=""){
-	print("The filter was applied.");
 	applyGlobalFilter(regex);
+	print("The filter was applied.");
 }else{
 	print("No threads were selected.");
 }
