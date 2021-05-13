@@ -51,6 +51,7 @@ var entry_num = 0;
 var prev = [];
 ```
 
+Here, we start iterating throught the events of the trace. We get an event, and set up the *start_time* and *prev* variables if they have not already been. If the event is a *sched_switch*, we continue to analyze it.
 ```javascript
 while (iter.hasNext()){
 	event = iter.next();
@@ -58,14 +59,17 @@ while (iter.hasNext()){
 	
 	if(start_time==-1) start_time = event.getTimestamp().toNanos();
 	if(prev[cpu_num]==null) prev[cpu_num] = start_time;
-	
+
 	if(event.getName()=="sched_switch"){
 		last_sched_switch = event;
 		var new_entry;
 
 		var new_tid = getEventFieldValue(event, "prev_tid");
 		if(new_tid==0) new_tid = new_tid + ":" + cpu_num;
-	
+```
+
+If this thread is not already recorded in the *swamp_list*, then we create a new entry for the list and add it. The *last_active* variable is set to the current timestamp if the thread was not preempted; otherwise, it is set to -1.
+```javascript
 		if(track_list[new_tid]==null){
 			new_entry = {
 				tid: getEventFieldValue(event, "prev_tid"),
@@ -84,7 +88,10 @@ while (iter.hasNext()){
 			swamp_list[entry_num] = new_entry;
 			track_list[new_tid] = entry_num;
 			entry_num++;
-			
+```
+
+If the current thread has already been recorded in the *swamp_list*, then we update that entry. We set a new end entry, and update the duration. Additionally, if the *last_active* entry is not set to -1, we update the thread's period of inactivity.
+```javascript
 		}else{
 			swamp_list[track_list[new_tid]].end = event.getTimestamp().toNanos();
 			swamp_list[track_list[new_tid]].duration = swamp_list[track_list[new_tid]].duration + (event.getTimestamp().toNanos() - prev[cpu_num]);
@@ -99,6 +106,10 @@ while (iter.hasNext()){
 		}
 	}
 }
+```
+
+Once the iteration is over, we set the end time to be the timestamp of the very last event.
+```javascript
 end_time = event.getTimestamp().toNanos();
 ```
 
