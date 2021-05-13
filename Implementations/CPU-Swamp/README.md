@@ -113,6 +113,7 @@ Once the iteration is over, we set the end time to be the timestamp of the very 
 end_time = event.getTimestamp().toNanos();
 ```
 
+Finally, we have to consider the very last event. In the previous loop, we were only looking at the "prev_" arguments in the *sched_switch* events. In order to analyze the last thread scheduled, we should look at the "next_" arguments in the last *sched_switch* event. For this reason, we recorded the last *sched_switch* event to be analyzed. In this step, we follow the same pattern as above. However, the syntax is a little different as we use the "next_" arguments.
 ```javascript
 if(last_sched_switch!=null){
 	var cpu_num = getEventFieldValue(last_sched_switch,"CPU");
@@ -149,7 +150,7 @@ print("Sorting threads by swamp percentage...");
 swamp_list.sort(function(a,b){return (1 - b.duration/(b.end-b.start-b.inactive)) - (1 - a.duration/(a.end-a.start-a.inactive))});
 ```
 
-The global filter requires a regex to higlight the proper events. We create one in this step. Basically, we iterate through the sorted list, adding each thread id to the regex until the threads no longer fit within the threshold or the list ends.
+The global filter requires a regex to higlight the proper events. We create one in this step. Basically, we iterate through the sorted list, adding each thread id to the regex until the threads no longer fit within the threshold or the list ends. When a thread fits the threshold criteria, we print out its thread id and the percentage that it was swamped. This is calculated as 1 - (the thread's total duration on the CPU / (the thread's end time - the thread's start time - the thread's period of inactivity)).
 ```javascript
 //this block creates a global filter
 print("Creating filter...");
