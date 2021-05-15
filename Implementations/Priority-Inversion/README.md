@@ -139,4 +139,8 @@ if(regex!=""){
 }
 ```
 
-The file *priority_inversion_marker* contains this code.
+The file *priority_inversion_marker* contains this code. I ran the script on a trace that I created. I ran a multithreaded Java program at priority level 3 using round robin scheduling when creating that trace. When using the priority_inversion_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
+![Console output](Screenshots/05-15_Console.png?raw=true)
+Each offending thread has a "x/y" after its thread id, the "x" being the number of inverts it has caused and the "y" being the number of its occurrences. Here is a screenshot of the Control Flow view after the filter was applied:
+![Control Flow view](Screenshots/05-15_Control_Flow.png?raw=true)
+We can see that most of the offending threads have thread ids in the 16000's in the console output. Looking at the Control Flow view, we see that these threads are used for the execution of the Java program. These threads have a lower priority than average, so it makes sense that they would cause some priority inversions.
