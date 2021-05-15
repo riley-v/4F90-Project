@@ -29,7 +29,7 @@ if(trace==null){
 }
 ```
 
-to be explained
+Next, we will iterate through the events to find inversions. The variables *iter* and *event* are used for the iteration. *invert_list* stores information for each thread in the trace, *track_list* stores the locations of each thread in *invert_list* for quicker analysis, and *entry_num* refers to last index in *invert_list* + 1. Finally, *waiting_list* stores the thread id and priority of every thread that is ready to be scheduled on the CPU, while *is_waiting* records whether or not a thread is currently in the *waiting_list* for quicker analysis.
 ```javascript
 print("Finding inversions...");
 
@@ -45,14 +45,21 @@ var event = null;
 
 while (iter.hasNext()){
 	event = iter.next();
-		
+```
+
+If the event is a *sched_waking*, then we add the respective thread to the *waiting_list*.
+```javascript	
 	if(event.getName() == "sched_waking"){
 		var target_id = getEventFieldValue(event, "tid");
 		if(target_id==0) target_id = target_id + ":" + getEventFieldValue(event, "CPU");
 		
 		if(is_waiting[target_id] != true) waiting_list.push({id: target_id, prio: getEventFieldValue(event, "prio")});
 		is_waiting[target_id] = true;
-	
+```
+
+If the event is a *sched_switch*, then we first remove the "next_" thread from the *waiting_list*, as it is no longer waiting to be scheduled. After that, we check if the "next_" thread is already in the *invert_list*. If not, we create a new entry with the "next_" thread's thread id, the number of occurrences at 1, and a list to store the instances of priority inversion. We use the function checkInversion (explained below) to check if the *sched_switch* caused priority inversion. If so, then the instance is recorded. <br />
+If the "next_" thread is already in the *invert_list*, then we retrieve that entry from the list. We increase the number of occurrences by one, and if checkInversion returns true, we also record another instance of priority inversion. 
+```javascript	
 	}else if(event.getName() == "sched_switch"){
 		var new_id = getEventFieldValue(event, "next_tid");
 		if(new_id==0) new_id = new_id + ":" + getEventFieldValue(event, "CPU");
