@@ -1,5 +1,5 @@
 # Thread Swamp
-Using TraceCompass EASE scripting, we can learn more about a trace by looking at how a thread occupies the CPU. If a thread is constantly being interrupted by other processes, so that it is being starved, we can say that the thread is being swamped. The following code highlights bad smells of CPU swamp by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads. <br />
+Using TraceCompass EASE scripting, we can learn more about a trace by looking at how a thread occupies the CPU. If a thread is constantly being interrupted by other processes, so that it is being starved, we can say that the thread is being swamped. The following code highlights bad smells of thread swamp by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads. <br />
 
 First we need to get the necessary modules for the analysis. We need the Trace module to examine the trace events and the Filters module to apply the global filter.
 ```javascript
@@ -7,7 +7,7 @@ loadModule("/TraceCompass/Trace");
 loadModule('/TraceCompass/Filters');
 ```
 
-The *threshold* value is a user supplied value. It should be a number between 0 and 100. This value represents CPU usage as a percetage of the lifettime of a thread over the tracing period. If a thread occupies the CPU for longer than the threshold value, it will be highlighted. To set the variable, go to cpu_swamp.js -> Run As... -> Run Configuration... -> Script arguments.
+The *threshold* value is a user supplied value. It should be a number between 0 and 100. This value represents CPU usage as a percetage of the lifettime of a thread over the tracing period. If a thread occupies the CPU for longer than the threshold value, it will be highlighted. To set the variable, go to thread_swamp.js -> Run As... -> Run Configuration... -> Script arguments.
 ```javascript
 var threshold = argv[0];
 if(threshold==null || threshold > 100 || threshold < 0){
@@ -179,8 +179,8 @@ if(regex!=""){
 }
 ```
 
-The file *cpu_swamp_marker.js* contains this code. I ran the script on a trace that I created. I used the CPU burner stress to spawn eight workers to spin on the CPU for 20 seconds as I created that trace. When using the cpu_swamp_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
+The file *thread_swamp_marker.js* contains this code. I ran the script on a trace that I created. I used the CPU burner stress to spawn eight workers to spin on the CPU for 20 seconds as I created that trace. When using the cpu_swamp_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
 ![Console output](Screenshots/05-15_Console.png?raw=true)
-Right away, we can see that the stress threads were all about 75% swamped. Using the cpu_hog_marker analysis, we could see that four workers went to CPU 0 and four went to CPU 1. Therefore, the 75% makes perfect sense. As all eight ran at the same time, each stress worker would have been equally swamped by the other three stress workers running on the same CPU. They each would have gotten only about 25% of the CPU during their running time, leading to a 75% swamping percentage. Next we can see that the idle processes for each CPU are about 74% swamped. Unfortunately, both have the same thread id. I will have to update the script to properly identify the idle processes by also displaying their corresponding CPU number. The 74% swamping means that for they occupied a CPU for about 26% of their running time. Finally, we can see that three other threads were swamped above 10% of their running time. Here is the Control Flow view of the trace:
+Right away, we can see that the stress threads were all about 75% swamped. Using the cpu_hog_marker analysis, we could see that four workers went to CPU 0 and four went to CPU 1. Therefore, the 75% makes perfect sense. As all eight ran at the same time, each stress worker would have been equally swamped by the other three stress workers running on the same CPU. They each would have gotten only about 25% of the CPU during their running time, leading to a 75% swamping percentage. Next we can see that the idle processes for each CPU are about 74% swamped. The 74% swamping means that for they occupied a CPU for about 26% of their running time. Finally, we can see that three other threads were swamped above 10% of their running time. Here is the Control Flow view of the trace:
 ![Console output](Screenshots/05-15_Control_Flow.png?raw=true)
 We can see that the offending threads have been highlighted. The idle process threads are offscreen in this screenshot.
