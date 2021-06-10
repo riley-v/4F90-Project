@@ -72,7 +72,8 @@ If this thread is not already recorded in the *swamp_list*, then we create a new
 ```javascript
 		if(track_list[new_tid]==null){
 			new_entry = {
-				tid: getEventFieldValue(event, "prev_tid"),
+				tid: String(new_tid).split(":")[0],
+				cpu: String(new_tid).split(":")[1],
 				start: prev[cpu_num],
 				end: event.getTimestamp().toNanos(),
 				duration: event.getTimestamp().toNanos() - prev[cpu_num],
@@ -125,7 +126,8 @@ if(last_sched_switch!=null){
 	
 	if(track_list[new_tid]==null){
 		new_entry = {
-			tid: getEventFieldValue(last_sched_switch, "next_tid"),
+			tid: String(new_tid).split(":")[0],
+			cpu: String(new_tid).split(":")[1],
 			start: prev[cpu_num],
 			end: end_time,
 			duration: end_time - prev[cpu_num],
@@ -159,12 +161,22 @@ var regex = "";
 var i = 0;
 print("Swamped Threads: ");
 while(i<swamp_list.length && 1 - swamp_list[i].duration/(swamp_list[i].end-swamp_list[i].start-swamp_list[i].inactive) >= threshold){
-	if(regex==""){
-		regex = "TID==" + swamp_list[i].tid;
+	if(swamp_list[i].cpu==null){
+		if(regex==""){
+			regex = "TID==" + swamp_list[i].tid;
+		}else{
+			regex = regex + " || TID==" + swamp_list[i].tid;
+		}
+		print(swamp_list[i].tid + ": " + (1 - swamp_list[i].duration/(swamp_list[i].end-swamp_list[i].start-swamp_list[i].inactive))*100 + "%");
 	}else{
-		regex = regex + " || TID==" + swamp_list[i].tid;
+		if(regex==""){
+			regex = "(TID==" + swamp_list[i].tid + " && CPU==" + swamp_list[i].cpu + ")";
+		}else{
+			regex = regex + " || (TID==" + swamp_list[i].tid + " && CPU==" + swamp_list[i].cpu + ")";
+		}
+		print(swamp_list[i].tid + "/" + swamp_list[i].cpu + ": " + (1 - swamp_list[i].duration/(swamp_list[i].end-swamp_list[i].start-swamp_list[i].inactive))*100 + "%");
 	}
-	print(swamp_list[i].tid + ": " + (1 - swamp_list[i].duration/(swamp_list[i].end-swamp_list[i].start-swamp_list[i].inactive))*100 + "%");
+	
 	i++;
 }
 ```
@@ -179,7 +191,7 @@ if(regex!=""){
 }
 ```
 
-The file *thread_swamp_marker.js* contains this code. I ran the script on a trace that I created. I used the CPU burner stress to spawn eight workers to spin on the CPU for 20 seconds as I created that trace. When using the cpu_swamp_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
+The file *thread_swamp_marker.js* contains this code. I ran the script on a trace that I created. I used the CPU burner stress to spawn eight workers to spin on the CPU for 20 seconds as I created that trace. When using the *thread_swamp_marker*, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
 ![Console output](Screenshots/05-15_Console.png?raw=true)
 Right away, we can see that the stress threads were all about 75% swamped. Using the cpu_hog_marker analysis, we could see that four workers went to CPU 0 and four went to CPU 1. Therefore, the 75% makes perfect sense. As all eight ran at the same time, each stress worker would have been equally swamped by the other three stress workers running on the same CPU. They each would have gotten only about 25% of the CPU during their running time, leading to a 75% swamping percentage. Next we can see that the idle processes for each CPU are about 74% swamped. The 74% swamping means that for they occupied a CPU for about 26% of their running time. Finally, we can see that three other threads were swamped above 10% of their running time. Here is the Control Flow view of the trace:
 ![Console output](Screenshots/05-15_Control_Flow.png?raw=true)
