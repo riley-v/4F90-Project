@@ -44,23 +44,12 @@ var iter = getEventIterator(trace);
 var event = null;
 
 while (iter.hasNext()){
-	event = iter.next();
+	event = iter.next();	
 ```
 
-If the event is a *sched_waking*, then we add the respective thread to the *waiting_list*.
+If the event is a *sched_switch*, then we first remove the "next_" thread from the *waiting_list*.
 ```javascript	
-	if(event.getName() == "sched_waking"){
-		var target_id = getEventFieldValue(event, "tid");
-		if(target_id==0) target_id = target_id + ":" + getEventFieldValue(event, "CPU");
-		
-		if(is_waiting[target_id] != true) waiting_list.push({id: target_id, prio: getEventFieldValue(event, "prio")});
-		is_waiting[target_id] = true;
-```
-
-If the event is a *sched_switch*, then we first remove the "next_" thread from the *waiting_list*, as it is no longer waiting to be scheduled. After that, we check if the "next_" thread is already in the *invert_list*. If not, we create a new entry with the "next_" thread's thread id, the number of occurrences at 1, and a list to store the instances of priority inversion. We use the function checkInversion (explained below) to check if the *sched_switch* caused priority inversion. If so, then the instance is recorded. <br />
-If the "next_" thread is already in the *invert_list*, then we retrieve that entry from the list. We increase the number of occurrences by one, and if checkInversion returns true, we also record another instance of priority inversion. 
-```javascript	
-	}else if(event.getName() == "sched_switch"){
+	if(event.getName() == "sched_switch"){
 		var new_id = getEventFieldValue(event, "next_tid");
 		if(new_id==0) new_id = new_id + ":" + getEventFieldValue(event, "CPU");
 		
@@ -68,38 +57,53 @@ If the "next_" thread is already in the *invert_list*, then we retrieve that ent
 			if(new_id==waiting_list[i].id) waiting_list.splice(i,1);
 		}
 		is_waiting[new_id] = false;
-			
-		if(track_list[new_id]==null){
-			var new_entry = {
-				tid: getEventFieldValue(event, "next_tid"),
-				occurs: 1,
-				inverts: []
+```
+
+Next, if the "prev_" thread ended in a blocked state, then we add it to the *waiting_list*.
+```javascript
+		var target_id = getEventFieldValue(event, "prev_tid");
+		if(target_id==0) target_id = target_id + ":" + getEventFieldValue(event, "CPU");
+		
+		if((getEventFieldValue(event, "prev_state")=="TASK_INTERRUPTIBLE" || getEventFieldValue(event, "prev_state")=="TASK_UNINTERRUPTIBLE") && is_waiting[target_id] != true) {
+			waiting_list.push({
+				id: target_id,
+				tid: String(target_id).split(":")[0],
+				cpu: String(target_id).split(":")[1],
+				prio: getEventFieldValue(event, "prev_prio")
+			});
+			is_waiting[target_id] = true;
+		}
+```
+
+Finally, we check the thread's priority against all those in the *waiting_list*. For any entry in *waiting_list* that has a priority more (in Linux, technically less) than the current thread, then we add it to the *priority_list*.
+```javascript
+		var priority = getEventFieldValue(event, "next_prio");
+		for(i = 0; i < waiting_list.length; i++){
+			if(priority>waiting_list[i].prio){
+				newEntry(waiting_list[i]);
 			}
-			if(checkInversion(waiting_list,getEventFieldValue(event, "next_prio"))) new_entry.inverts.push(event.getTimestamp());
-			
-			invert_list[entry_num] = new_entry;
-			track_list[new_id] = entry_num;
-			entry_num++;
-			
-		}else{
-			invert_list[track_list[new_id]].occurs++;
-			if(checkInversion(waiting_list,getEventFieldValue(event, "next_prio"))) invert_list[track_list[new_id]].inverts.push(event.getTimestamp());
 		}
 	}
 }
 ```
 
-This function receives a list and a number. If any of the priorities in the list exceed that of the given number, the function returns true. Otherwise, it returns false.
+This function adds a new entry to the *priority_list*.
 ```javascript
-function checkInversion(check_list, priority){
-	check_list.sort(function(a,b){return b.prio - a.prio});
-	var i;
-	for(i = 0; i < check_list.length; i++){
-		if(priority<check_list[i].prio){
-			return true;
+function newEntry(entry){
+	if(track_list[entry.id]==null){
+		var new_entry = {
+			tid: entry.tid,
+			cpu: entry.cpu,
+			inverts: 1
 		}
+		
+		invert_list[entry_num] = new_entry;
+		track_list[entry.id] = entry_num;
+		entry_num++;
+		
+	}else{
+		invert_list[track_list[entry.id]].inverts++;
 	}
-	return false;
 }
 ```
 
@@ -108,7 +112,7 @@ Now, the threads in the *invert_list* must be sorted by the highest inverting pe
 //sort the entries by number of inverts: highest to lowest
 print("Sorting threads by number of inverts...");
 
-invert_list.sort(function(a,b){return b.inverts.length/b.occurs - a.inverts.length/a.occurs});
+invert_list.sort(function(a,b){return b.inverts - a.inverts});
 ```
 
 The global filter requires a regex to higlight the proper events. We create one in this step. Basically, we iterate through the sorted list, adding each thread id to the regex until the threads no longer fit within the threshold or the list ends. When a thread fits the threshold criteria, we print out its thread id, the number of times it caused a priority inversion, and the total number of times that it occupied the CPU.
@@ -117,14 +121,26 @@ The global filter requires a regex to higlight the proper events. We create one 
 print("Creating filter...");
 
 var regex = "";
-print("Inverting Threads:");
-while(i<invert_list.length && invert_list[i].inverts.length/invert_list[i].occurs >= threshold){
-	if(regex==""){
-		regex = "TID==" + invert_list[i].tid;
+var i = 0;
+print("Inverted Threads:");
+while(i<invert_list.length && invert_list[i].inverts >= threshold){
+	
+	if(invert_list[i].cpu==null){
+		if(regex==""){
+			regex = "TID==" + invert_list[i].tid;
+		}else{
+			regex = regex + " || TID==" + invert_list[i].tid;
+		}
+		print(invert_list[i].tid + ": " + invert_list[i].inverts + " invert(s)");
 	}else{
-		regex = regex + " || TID==" + invert_list[i].tid;
+		if(regex==""){
+			regex = "(TID==" + invert_list[i].tid + " && CPU==" + invert_list[i].cpu + ")";
+		}else{
+			regex = regex + " || (TID==" + invert_list[i].tid + " && CPU==" + invert_list[i].cpu + ")";
+		}
+		print(invert_list[i].tid + "/" + invert_list[i].cpu + ": " + invert_list[i].inverts + " invert(s)");
 	}
-	print(invert_list[i].tid + ": " + invert_list[i].inverts.length + "/" + invert_list[i].occurs);
+	
 	i++;
 }
 ```
@@ -139,8 +155,3 @@ if(regex!=""){
 }
 ```
 
-The file *priority_inversion_marker* contains this code. I ran the script on a trace that I created. I ran a multithreaded Java program at priority level 3 using round robin scheduling when creating that trace. When using the priority_inversion_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
-![Console output](Screenshots/05-15_Console.png?raw=true)
-Each offending thread has a "x/y" after its thread id, the "x" being the number of inverts it has caused and the "y" being the number of its occurrences. Here is a screenshot of the Control Flow view after the filter was applied:
-![Control Flow view](Screenshots/05-15_Control_Flow.png?raw=true)
-We can see that most of the offending threads have thread ids in the 16000's in the console output. Looking at the Control Flow view, we see that these threads are used for the execution of the Java program. These threads have a lower priority than average, so it makes sense that they would cause some priority inversions.
