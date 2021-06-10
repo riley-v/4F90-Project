@@ -182,7 +182,7 @@ if(regex!=""){
 }
 ```
 
-The file *cpu_hog_marker.js* contains this code. I ran the script on a trace that I created. I used the CPU burner stress to spawn eight workersto spin on the CPU for 20 seconds as I created that trace. When using the cpu_hog_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
+This code can be found in "Code/Runtime Smell Detection". I ran the script on a trace that I created. I used the CPU burner stress to spawn eight workersto spin on the CPU for 20 seconds as I created that trace. When using the cpu_hog_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
 ![Console output](Screenshots/05-15_Console.png?raw=true)
 The first thing to notice is that for both CPU 0 and CPU 1, the biggest "hog" was actually the idle process that runs when nothing else is available to run. Both "hogged" the CPU for about 26% of the trace. This tells us that the CPUs were idle 26% of the duration of the trace. Next, we can see that four of the stress workers went to CPU 0, while the other four went to CPU 1. All eight of them hogged their respective CPU for a little over 18% of the trace. Here is a screenshot of the control flow view of the trace:
 ![Control flow](Screenshots/05-15_Control_Flow.png?raw=true)
