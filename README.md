@@ -1,5 +1,8 @@
 # Execution Tracing-Based Bad Smell Detection
-This repository contains information relating to the project entitled Execution tracing-based bad smell detection.
+This repository contains information relating to the project entitled Execution tracing-based bad smell detection. This project uses the concept of bad smells to detect the instances of runtime bad smells (eg. cpu hog, see [Implementations](Implementations/) for more details) in trace data. It uses TraceCompass EASE scripting to accomplish this. Users must have TraceCompass installed on their computer, as well as the following add-ons:
+* Trace Compass Scripting (Incubation)
+* Trace Compass Scripting Javascript (Incubation)
+* Trace Compass Filters (Incubation)
 
 ## To Use
 ### Loading the Scripts on to TraceCompass
