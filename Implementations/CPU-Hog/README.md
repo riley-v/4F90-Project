@@ -1,5 +1,15 @@
 # CPU Hog
-Using TraceCompass EASE scripting, we can learn more about a trace by looking at how long a process occupies a CPU. If a process occupies a CPU longer than it should and starves other processes, we can classify it as a CPU hog. The following code highlights bad smells of CPU hog by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.<br />
+Using TraceCompass EASE scripting, we can learn more about a trace by looking at how long a process occupies a CPU. If a process occupies a CPU longer than it should and starves other processes, we can classify it as a CPU hog.
+
+## Results
+The code can be found in "Code/Runtime Smell Detection". I ran the script on a trace that I created. I used the CPU burner [stress](https://www.tecmint.com/linux-cpu-load-stress-test-with-stress-ng-tool/) to spawn eight workersto spin on the CPU for 20 seconds as I created that trace. When using the cpu_hog_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
+![Console output](Screenshots/05-15_Console.png?raw=true)
+The first thing to notice is that for both CPU 0 and CPU 1, the biggest "hog" was actually the idle process that runs when nothing else is available to run. Both "hogged" the CPU for about 26% of the trace. This tells us that the CPUs were idle 26% of the duration of the trace. Next, we can see that four of the stress workers went to CPU 0, while the other four went to CPU 1. All eight of them hogged their respective CPU for a little over 18% of the trace. Here is a screenshot of the control flow view of the trace:
+![Control flow](Screenshots/05-15_Control_Flow.png?raw=true)
+In this screenshot, we can see that the offending threads have been higlighted by the script. The stress threads were indeed running for most of the trace, but were constantly interrupting each other. The idle process threads are offscreen for this screenshot.
+
+## Code Explanation
+The following code highlights bad smells of CPU hog by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.
 <br />
 First we need to get the necessary modules for the analysis. We need the Trace module to examine the trace events and the Filters module to apply the global filter.
 ```javascript
@@ -181,10 +191,3 @@ if(regex!=""){
 	print("No threads were selected.");
 }
 ```
-
-This code can be found in "Code/Runtime Smell Detection". I ran the script on a trace that I created. I used the CPU burner stress to spawn eight workersto spin on the CPU for 20 seconds as I created that trace. When using the cpu_hog_marker, I set the threshold to 10%. We can see the console output of the analysis in the following screenshot:
-![Console output](Screenshots/05-15_Console.png?raw=true)
-The first thing to notice is that for both CPU 0 and CPU 1, the biggest "hog" was actually the idle process that runs when nothing else is available to run. Both "hogged" the CPU for about 26% of the trace. This tells us that the CPUs were idle 26% of the duration of the trace. Next, we can see that four of the stress workers went to CPU 0, while the other four went to CPU 1. All eight of them hogged their respective CPU for a little over 18% of the trace. Here is a screenshot of the control flow view of the trace:
-![Control flow](Screenshots/05-15_Control_Flow.png?raw=true)
-In this screenshot, we can see that the offending threads have been higlighted by the script. The stress threads were indeed running for most of the trace, but were constantly interrupting each other. The idle process threads are offscreen for this screenshot.
-
