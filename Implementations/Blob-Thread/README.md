@@ -1,4 +1,5 @@
 # Blob Thread
+Using TraceCompass EASE scripting, we can learn more about a trace by looking at a thread's runtime compared with its parent's duration. We classify a thread as a blob thread if it contains most of its parent's implementation. The following code highlights bad smells of blob thread by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.
 To be explained:
 ```javascript
 loadModule("/TraceCompass/Trace");
