@@ -11,7 +11,8 @@ The project uses the concept of bad smells to define threads as potentially prob
 * Endless Waiting
 * Blob Thread
 
-
+Here is the TraceCompass Control Flow view with the CPU Hog filter applied.
+![Results-Explained](Screenshots/Results-Explained.png?raw=true)
 
 ## To Use
 ### Loading the Scripts on to TraceCompass
