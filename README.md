@@ -31,7 +31,7 @@ If these tracepoints are not used, the filters may not work properly.
 ### Creating a Filter
 Before running any filter scripts, first make sure that you have an active trace loaded on TraceCompass. If there is no active trace, the scripts will output the following to the console: "No trace is active."
 
-Next, enter a threshold value in the field of the bad smell you want to filter for. The threshold for each is explained on the Runtime Smell Detection view interface. With the threshold entered, click detect. 
+First, select the runtime smell you would like to detect from the dropdown list. Next, enter a threshold value. The threshold for each is explained when pressing the 'Help' button. With the threshold entered, click 'Detect'. 
 
 ![Interface](Screenshots/Interface.png?raw=true)
 
