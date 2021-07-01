@@ -1,0 +1,55 @@
+Runtime Smell Detection
+	This project uses statistical measures to highlight potentially problematic threads in TraceCompass views. Problematic threads are identified using the concept of bad smells extended to execution traces.
+	
+To Use:
+
+	Install the following add-ons:
+		Trace Compass Scripting (Incubation)
+		Trace Compass Scripting Javascript (Incubation)
+		Trace Compass Filters (Incubation)
+		
+	Select the runtime smell you would like to detect form the dropdown list.
+	
+	Enter an appropriate threshold value.
+	
+	Click 'Detect'.
+
+Available Runtime Bad Smells:
+
+	Blob Thread
+		Definition: a thread that contains most of its parent's implementation.
+		Threshold: find threads whose time on any CPU is at least 'x'% of their parent's duration. (0 < x <= 100)
+		Tracepoints Needed: sched_switch, sched_process_fork, sched_process_exit
+	
+	CPU Hog
+		Definition: a thread which occupies a lot of time on a CPU, blocking it from other threads.
+		Threshold: find threads that occupy a CPU for at least 'x'% of the trace. (0 < x <= 100)
+		Tracepoints Needed: sched_switch
+		
+	Endless Waiting
+		Definition: a thread that is put to sleep but never woken up.
+		Threshold: find threads that are sleeping for at least 'x' seconds. (0 < x)
+		Tracepoints Needed: sched_switch, sched_process_exit
+		
+	Multiple Starts
+		Definition: when a thread is started multiple times.
+		Threshold: find threads that are started at least 'x' times. (2 <= x)
+		Tracepoints Needed: sched_process_fork
+		
+	Overthreading
+		Definition: a family (children of the same parent) of threads which block each other from occupying the CPU by occupying it themselves.
+		Threshold: find threads that are blocked by siblings for at least 'x'% of the time that they are runnable. (0 < x <= 100)
+		Tracepoints Needed: sched_switch, sched_process_fork, sched_process_exit
+		
+	Priority Inversion
+		Definition: when a sleeping higher priority thread is preempted by a lower priority thread.
+		Threshold: find threads that are priority inverted by lower threads at least 'x' times. (1 <= x)
+		Tracepoints Needed: sched_switch, sched_process_exit
+		
+	Thread Swamp
+		Definition: when a thread is blocked from the CPU by other thread occupying the CPU.
+		Threshold: find threads that are blocked for at least 'x'% of the time that they are runnable. (0 < x <= 100)
+		Tracepoints Needed: sched_switch
+		
+Author: Riley VanDonge
+For more information, please visit https://github.com/riley-v/runtime-bad-smell-trace-metrics
