@@ -1,6 +1,15 @@
 # Blob Thread
 Using TraceCompass EASE scripting, we can learn more about a trace by looking at a thread's runtime compared with its parent's duration. We classify a thread as a blob thread if it contains most of its parent's implementation. 
 
+## Results
+The code can be found in "Code/Runtime Smell Detection". I ran the script on a trace I created while running a custom Java program. The program can be found [here](https://github.com/riley-v/runtime-bad-smell-trace-metrics/blob/main/Code/PriorityInversionDemo.java). Basicaly, it creates four threads:
+* a thread at priority 29 which accesses a synchronized method first
+* a thread at priority 20 which accesses the synchronized method second
+* a thread at priority 25 which creates a list of one million integers and sorts them
+* a thread at priority 20 which does nothing but sleep
+
+I checked for blob threads using a threshold of 25% of the parent's duration. Here is a screenshot of the console output.
+
 ## Code Explanation
 The following code highlights bad smells of blob thread by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.
 
