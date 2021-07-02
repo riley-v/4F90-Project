@@ -1,6 +1,28 @@
 # Endless Waiting
-Using TraceCompass EASE scripting, we can learn more about a trace by looking at how long a thread is waiting for. It is difficult to say whether a thread is waiting forever or just a very long time. We classify a thread as endlessly waiting if it is waiting longer than a user specified amount of time. The following code highlights bad smells of endless waiting by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.<br />
-<br />
+Using TraceCompass EASE scripting, we can learn more about a trace by looking at how long a thread is waiting for. It is difficult to say whether a thread is waiting forever or just a very long time. We classify a thread as endlessly waiting if it is waiting longer than a user specified amount of time.
+
+## Results
+The code can be found in "Code/Runtime Smell Detection". I ran the script on a trace I created while running a custom Java program. The program can be found [here](https://github.com/riley-v/runtime-bad-smell-trace-metrics/blob/main/Code/PriorityInversionDemo.java). Basicaly, it creates four threads:
+* a thread at priority 29 which accesses a synchronized method first
+* a thread at priority 20 which accesses the synchronized method second
+* a thread at priority 25 which creates a list of one million integers and sorts them
+* a thread at priority 20 which does nothing but sleep
+
+I used a threshold of 20 seconds. The entire trace was almost 31 seconds long, with the execution of the Java program taking 23 seconds. Here is a screenshot of the console output. I will focus on the Java program.
+
+![Console](Screenshots/end-console.png?raw=true)
+
+We can see that the top three waits are almost 31 seconds, the length of the trace, and a number of waits are around 23 seconds, the length of the Java program's execution. Lets look at the highlighted Control Flow View.
+
+![Flow](Screenshots/end-flow.png?raw=true)
+
+The *bash*, *sudo*, and first *java* threads all wait around 23 seconds. We can tell what has happenned here. The *bash* thread started the *sudo* thread then waited, the *sudo* thread started the *java* thread then waited, and the *java* thread started the actual program (thread id of 2223 here) then waited. Lets look at thread 2223. According to the console output, it waited for 22.39 seconds, and all of its CPU time seems to be at the beginning of its execution. This makes sense. If you look at the code, you will see that the program creates the four threads mentioned earlier, then calls join() on the one that just waits.
+
+Finally, lets look at the only one of the four created threads that is highlighted in the Control Flow View. Its thread id is 2239, and according to the console output, it waits for 22.89 seconds. This means that thread 2239 just waited for pretty musc its entire execution, for no apparent reason. When you look at the code linked above, you can see that this is the case. Using this tool, we can identify that we should examine the source code of thread 2239 as there is some sort of issue there.
+
+## Code Explanation
+The following code highlights bad smells of endless waiting by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.
+
 First we need to get the necessary modules for the analysis. We need the Trace module to examine the trace events and the Filters module to apply the global filter.
 ```javascript
 loadModule("/TraceCompass/Trace");
