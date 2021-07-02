@@ -2,7 +2,21 @@
 Using TraceCompass EASE scripting, we can learn more about a trace by looking at the order in which threads are scheduled and run. More specifically, we can search for instances of priority inversion, a phenomenon where a lower priority thread indirectly preempts a higher priority thread. 
 
 ## Results
-The code can be found in "Code/Runtime Smell Detection". 
+The code can be found in "Code/Runtime Smell Detection". I ran the script on a trace I created while running a custom Java program. The program can be found [here](https://github.com/riley-v/runtime-bad-smell-trace-metrics/blob/main/Code/PriorityInversionDemo.java). Basicaly, it creates four threads:
+* a thread at priority 29 which accesses a synchronized method first
+* a thread at priority 20 which accesses the synchronized method second
+* a thread at priority 25 which creates a list of one million integers and sorts them
+* a thread at priority 20 which does nothing but sleep
+
+The system is running with Linux's completely fair scheduler, so most threads have priority 20. I set the threshold to 10000 inversions. We can see the console output in the following screenshot.
+
+![Console](Screenshots/prio-console.png?raw=true)
+
+Obviously, five threads were inverted a high number of times. It would be fair to say that a lot of these inversions came from the priority 25 thread mentioned above. This thread does a lot of work, and has a lower priority than most of the system. Lets look at the highlighted Control Flow View to find out more.
+
+![Flow](Screenshots/prio-flow.png?raw=true)
+
+Two of the threads that were inverted the most were the migration threads. It makes sense that these threads would be sleeping as they are waiting for migration jobs to finish. However, if we notice that CPU affinity is a problem, then the cause of it may be that the migration threads are getting preempted by lower priority threads. Another highly inverted thread is the systemd logging service. This is not too important for the actual execution of the program, so its nothing to worry about. Next, we see that rtkit-daemon, a helper process for threads needing real-time priveledges, is highly inverted. It makes sense for this thread to sleep as it interacts with other threads. If we see a latency in threads waiting for real-time priveledges, then priority inversion might be the cause. Finally, we can see that an irq thread has the most priority inversions. If we see that there is some latency with interupts,then priority inversion may be the problem.
 
 ## Code Explanation
 The following code highlights smells of priority inversion by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads. 
