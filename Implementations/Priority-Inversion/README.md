@@ -1,6 +1,11 @@
 # Priority Inversion
-Using TraceCompass EASE scripting, we can learn more about a trace by looking at the order in which thread's are scheduled and run. More specifically, we can search for instances of priority inversion, a phenomenon where a lower priority thread indirectly preempts a higher priority thread. The following code highlights smells od priority inversion by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.In the future, I would like to be able to highlight exactly in the trace where the inversion happened.
-<br />
+Using TraceCompass EASE scripting, we can learn more about a trace by looking at the order in which threads are scheduled and run. More specifically, we can search for instances of priority inversion, a phenomenon where a lower priority thread indirectly preempts a higher priority thread. 
+
+## Results
+The code can be found in "Code/Runtime Smell Detection". 
+
+## Code Explanation
+The following code highlights smells of priority inversion by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads. 
 
 First we need to get the necessary modules for the analysis. We need the Trace module to examine the trace events and the Filters module to apply the global filter.
 ```javascript
@@ -83,6 +88,18 @@ Finally, we check the thread's priority against all those in the *waiting_list*.
 				newEntry(waiting_list[i]);
 			}
 		}
+```
+
+If the event was a *sched_process_exit*, then we remove the exiting thread from the *waiting_list* if it was in that list.
+```javascript
+	}else if(event.getName() == "sched_process_exit"){
+		var new_id = getEventFieldValue(event, "tid");
+		if(new_id==0) new_id = new_id + ":" + getEventFieldValue(event, "CPU");
+		
+		for(i = 0; i < waiting_list.length; i++){
+			if(new_id==waiting_list[i].id) waiting_list.splice(i,1);
+		}
+		is_waiting[new_id] = false;
 	}
 }
 ```
