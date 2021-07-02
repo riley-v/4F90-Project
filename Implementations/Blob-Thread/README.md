@@ -10,6 +10,14 @@ The code can be found in "Code/Runtime Smell Detection". I ran the script on a t
 
 I checked for blob threads using a threshold of 25% of the parent's duration. Here is a screenshot of the console output.
 
+![Console](Screenshots/blob-console.png?raw=true)
+
+There are only two blob threads defined by our threshold. One is at around 43% and one at around 40%. Lets take a closer look at the Control Flow View.
+
+![Flow](Screenshots/blob-flow.png?raw=true)
+
+We can see that the thread that runs for about 40% of its parent's duration is a garbage collection thread, the parent being the Java program thread. From this, we know that there is a lot of garbage collection going on, but this is not a problem. The other thread, named Sorter, is a problem though. Sorter is the thread mentioned above that creates a list of one million integers and sorts them (explaining the garbage collection). Using this detection algorithm, we can notice that most of the Java program's work is being done by Sorter. We can then check the source code of Sorter and spread its work out more evenly among the threads.
+
 ## Code Explanation
 The following code highlights bad smells of blob thread by examining an execution trace on TraceCompass, and applying a global filter to highlight offending threads.
 
