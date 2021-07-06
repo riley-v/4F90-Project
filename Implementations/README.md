@@ -11,3 +11,7 @@
 [Endless Waiting](Endless-Waiting/) refers to the smell where a thread is put to sleep but is never woken up.
 #### Blob Thread
 [Blob thread](Blob-Thread/) refers to the smell where a child thread contains most of its parent's implementation.
+#### Overthreading
+[Overthreading](Overthreading/) refers to the smell where multiple children of the same parent block each other from CPU access, negating the benefits of multithreading.
+#### Multiple Starts
+[Multiple Starts](Multiple-Starts/) refers to the smell where a thread is started multiple times.
