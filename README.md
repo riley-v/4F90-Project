@@ -1,10 +1,10 @@
 # Execution Tracing-Based Bad Smell Detection
-This project provides TraceCompass EASE scripts that highlight potentially problematic threads in TraceCompass views (example screenshot below). Threads are highlighted based on statistical metrics calculated using trace data (implementation details [here](Implementations/). Users must have TraceCompass installed on their computer, as well as the following add-ons:
+This project provides TraceCompass EASE scripts that highlight potentially problematic threads in TraceCompass views (example screenshot below). Threads are highlighted based on statistical metrics calculated using trace data (implementation details [here](Implementations/)). Users must have TraceCompass installed on their computer, as well as the following add-ons:
 * Trace Compass Scripting (Incubation)
 * Trace Compass Scripting Javascript (Incubation)
 * Trace Compass Filters (Incubation)
 
-The project uses the concept of bad smells to define threads as potentially problematic. The following runtime bad smells can be highlighted: 
+The project uses the concept of bad smells (explained [here](Bad-Smells/)) to define threads as potentially problematic. The following runtime bad smells can be highlighted: 
 * CPU Hog
 * Thread Swamping
 * Priority Inversion
